@@ -1,0 +1,14 @@
+USB.h:98:7:USB::USB()	24	static
+interrupts.h:1:6:void OTG_FS_IRQHandler()	8	static
+interrupts.h:5:6:void NMI_Handler()	4	static
+interrupts.h:7:6:void HardFault_Handler()	4	static
+interrupts.h:11:6:void MemManage_Handler()	4	static
+interrupts.h:15:6:void BusFault_Handler()	4	static
+interrupts.h:19:6:void UsageFault_Handler()	4	static
+interrupts.h:23:6:void SVC_Handler()	4	static
+interrupts.h:25:6:void DebugMon_Handler()	4	static
+interrupts.h:27:6:void PendSV_Handler()	4	static
+interrupts.h:29:6:void SysTick_Handler()	4	static
+main.cpp:15:5:int main()	16	static
+main.cpp:35:1:void __static_initialization_and_destruction_0(int, int)	16	static
+main.cpp:35:1:cpp)	8	static

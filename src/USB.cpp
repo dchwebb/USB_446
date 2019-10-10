@@ -15,9 +15,9 @@ void USB::USBInterruptHandler() {
 	40000 IEPINT (IN endpoint interrupt)  				USB_OTG_DIEPINT_XFRC
 	80000
 	10
-	10			Address setup happens here but is not dealt with at this stage
-	80000
 	10
+	80000
+	10			Address setup happens here
 	10
 	80000 OEPINT (OUT endpoint interrupt) 19
 	40000 IEPINT (IN endpoint interrupt) 18
@@ -62,6 +62,7 @@ void USB::USBInterruptHandler() {
 	/////////////////////////////////////////////// 80000 OEPINT
 	// OUT endpoint interrupt
 	if ((USB_ReadInterrupts() & USB_OTG_GINTSTS_OEPINT) == USB_OTG_GINTSTS_OEPINT) {
+
 
 		// Read the output endpoint interrupt register to ascertain which endpoint(s) fired an interrupt
 		ep_intr = ((USBx_DEVICE->DAINT & USBx_DEVICE->DAINTMSK) & 0xFFFF0000U) >> 16; // FIXME mask unnecessary with shift right?
@@ -136,7 +137,9 @@ void USB::USBInterruptHandler() {
 			epnum++;
 			ep_intr >>= 1U;
 		}
-
+		if (usbEventNo > 26) {
+			int susp = 1;
+		}
 	}
 
 	/////////////////////////////////////////////// 40000 IEPINT
@@ -334,9 +337,7 @@ void USB::USBInterruptHandler() {
 	// Handle RxQLevel Interrupt
 	if ((USB_ReadInterrupts() & USB_OTG_GINTSTS_RXFLVL) == USB_OTG_GINTSTS_RXFLVL)
 	{
-		if (usbEventNo > 25) {
-			int susp = 1;
-		}
+
 		USB_OTG_FS->GINTMSK &= ~USB_OTG_GINTSTS_RXFLVL;
 
 		uint32_t temp = USB_OTG_FS->GRXSTSP;		//OTG receive status debug read/OTG status read and	pop registers (OTG_GRXSTSR/OTG_GRXSTSP) not shown in SFR
@@ -721,8 +722,9 @@ void USB::USBD_GetDescriptor(usbRequest req)
 	}
 }
 
-void USB::USBD_StdDevReq (usbRequest req)
+void USB::USBD_StdDevReq(usbRequest req)
 {
+	uint8_t dev_addr;
 	switch (req.mRequest & USB_REQ_TYPE_MASK)
 	{
 	case USB_REQ_TYPE_CLASS:
@@ -739,7 +741,11 @@ void USB::USBD_StdDevReq (usbRequest req)
 			break;
 
 		case USB_REQ_SET_ADDRESS:
-			//USBD_SetAddress (pdev, req);
+			//USBD_SetAddress (pdev, req)
+			dev_addr = (uint8_t)(req.Value) & 0x7FU;
+			USBx_DEVICE->DCFG &= ~(USB_OTG_DCFG_DAD);
+			USBx_DEVICE->DCFG |= ((uint32_t)dev_addr << 4) & USB_OTG_DCFG_DAD;
+			USB_EP0StartXfer(true, 0, nullptr, 0);
 			break;
 
 		case USB_REQ_SET_CONFIGURATION:

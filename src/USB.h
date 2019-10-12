@@ -72,6 +72,15 @@ extern uint8_t usbEventNo, eventOcc;
 #define  USB_LEN_LANGID_STR_DESC                        0x04U
 #define  USB_LEN_OTHER_SPEED_DESC_SIZ                   0x09U
 
+// EP0 State
+#define USBD_EP0_IDLE                                   0x00U
+#define USBD_EP0_SETUP                                  0x01U
+#define USBD_EP0_DATA_IN                                0x02U
+#define USBD_EP0_DATA_OUT                               0x03U
+#define USBD_EP0_STATUS_IN                              0x04U
+#define USBD_EP0_STATUS_OUT                             0x05U
+#define USBD_EP0_STALL                                  0x06U
+
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "STMicroelectronics"
@@ -81,7 +90,7 @@ extern uint8_t usbEventNo, eventOcc;
 #define USBD_INTERFACE_STRING_FS     "Custom HID Interface"
 
 #define  SWAPBYTE(addr)        (((uint16_t)(*((uint8_t *)(addr)))) + \
-                               (((uint16_t)(*(((uint8_t *)(addr)) + 1U))) << 8U))
+		(((uint16_t)(*(((uint8_t *)(addr)) + 1U))) << 8U))
 #define LOBYTE(x)  ((uint8_t)(x & 0x00FFU))
 #define HIBYTE(x)  ((uint8_t)((x & 0xFF00U) >> 8U))
 
@@ -105,7 +114,9 @@ public:
 	void USBD_GetDescriptor(usbRequest req);
 	void USBD_StdDevReq (usbRequest req);
 	void USB_EP0StartXfer(bool is_in, uint8_t epnum, uint8_t* xfer_buff, uint32_t xfer_len);
-	uint32_t USB_ReadInterrupts();
+	void USB_EPSetStall(uint8_t epnum);
+	bool USB_ReadInterrupts(uint32_t interrupt);
+	void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);
 
 	usbRequest req;
 	uint8_t maxPacket = 0x40;
@@ -115,26 +126,105 @@ public:
 	uint8_t* outBuff;
 	uint32_t outBuffSize;
 	uint32_t outCount;
+	uint32_t ep0_state;
 
-	// USB standard device descriptor
+	// USB standard device descriptor - in usbd_desc.c
 	uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] = {
-		0x12,					// bLength
-		USB_DESC_TYPE_DEVICE,	// bDescriptorType
-		0x01,					// bcdUSB  - 0x01 if LPM enabled
-		0x02,
-		0x00,					// bDeviceClass
-		0x00,					// bDeviceSubClass
-		0x00,					// bDeviceProtocol
-		64,  				 	// bMaxPacketSize
-		LOBYTE(USBD_VID),		// idVendor
-		HIBYTE(USBD_VID),		// idVendor
-		LOBYTE(USBD_PID_FS),	// idProduct
-		HIBYTE(USBD_PID_FS),	// idProduct
-		0x00,					// bcdDevice rel. 2.00
-		0x02,
-		USBD_IDX_MFC_STR,		// Index of manufacturer  string
-		USBD_IDX_PRODUCT_STR,	// Index of product string
-		USBD_IDX_SERIAL_STR,	// Index of serial number string
-		1						// bNumConfigurations
+			0x12,					// bLength
+			USB_DESC_TYPE_DEVICE,	// bDescriptorType
+			0x01,					// bcdUSB  - 0x01 if LPM enabled
+			0x02,
+			0x00,					// bDeviceClass
+			0x00,					// bDeviceSubClass
+			0x00,					// bDeviceProtocol
+			64,  				 	// bMaxPacketSize
+			LOBYTE(USBD_VID),		// idVendor
+			HIBYTE(USBD_VID),		// idVendor
+			LOBYTE(USBD_PID_FS),	// idProduct
+			HIBYTE(USBD_PID_FS),	// idProduct
+			0x00,					// bcdDevice rel. 2.00
+			0x02,
+			USBD_IDX_MFC_STR,		// Index of manufacturer  string
+			USBD_IDX_PRODUCT_STR,	// Index of product string
+			USBD_IDX_SERIAL_STR,	// Index of serial number string
+			1						// bNumConfigurations
+	};
+
+	// USB CUSTOM_HID device FS Configuration Descriptor  - in usbd_customhid.c
+	uint8_t USBD_CUSTOM_HID_CfgFSDesc[0x29] = {
+			0x09, /* bLength: Configuration Descriptor size */
+			USB_DESC_TYPE_CONFIGURATION, /* bDescriptorType: Configuration */
+			0x29, 					// USB_CUSTOM_HID_CONFIG_DESC_SIZ, wTotalLength: Bytes returned */
+			0x00,
+			0x01,         /*bNumInterfaces: 1 interface*/
+			0x01,         /*bConfigurationValue: Configuration value*/
+			0x00,         /*iConfiguration: Index of string descriptor describing
+	  the configuration*/
+			0xC0,         /*bmAttributes: bus powered */
+			0x32,         /*MaxPower 100 mA: this current is used for detecting Vbus*/
+
+			/************** Descriptor of CUSTOM HID interface ****************/
+			/* 09 */
+			0x09,         /*bLength: Interface Descriptor size*/
+			USB_DESC_TYPE_INTERFACE,/*bDescriptorType: Interface descriptor type*/
+			0x00,         /*bInterfaceNumber: Number of Interface*/
+			0x00,         /*bAlternateSetting: Alternate setting*/
+			0x02,         /*bNumEndpoints*/
+			0x03,         /*bInterfaceClass: CUSTOM_HID*/
+			0x00,         /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
+			0x00,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+			0,            /*iInterface: Index of string descriptor*/
+			/******************** Descriptor of CUSTOM_HID *************************/
+			/* 18 */
+			0x09,         /*bLength: CUSTOM_HID Descriptor size*/
+			0x21, 		/*bDescriptorType: CUSTOM_HID*/
+			0x11,         /*bCUSTOM_HIDUSTOM_HID: CUSTOM_HID Class Spec release number*/
+			0x01,
+			0x00,         /*bCountryCode: Hardware target country*/
+			0x01,         /*bNumDescriptors: Number of CUSTOM_HID class descriptors to follow*/
+			0x22,         /*bDescriptorType*/
+			0x4A, 		// USBD_CUSTOM_HID_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+			0x00,
+			/******************** Descriptor of Custom HID endpoints ********************/
+			/* 27 */
+			0x07,          /*bLength: Endpoint Descriptor size*/
+			USB_DESC_TYPE_ENDPOINT, /*bDescriptorType:*/
+
+			0x82, 		// CUSTOM_HID_EPIN_ADDR,     /*bEndpointAddress: Endpoint Address (IN)*/
+			0x03,          /*bmAttributes: Interrupt endpoint*/
+			0x02, 		// CUSTOM_HID_EPIN_SIZE, wMaxPacketSize: 2 Byte max
+			0x00,
+			0x05, 		// CUSTOM_HID_FS_BINTERVAL,          bInterval: Polling Interval
+			/* 34 */
+
+			0x07,	         /* bLength: Endpoint Descriptor size */
+			USB_DESC_TYPE_ENDPOINT,	/* bDescriptorType: */
+			0x01, 		// CUSTOM_HID_EPOUT_ADDR,  bEndpointAddress: Endpoint Address (OUT)
+			0x03,	/* bmAttributes: Interrupt endpoint */
+			0x02, 		// CUSTOM_HID_EPOUT_SIZE,	/* wMaxPacketSize: 2 Bytes max  */
+			0x00,
+			0x05			//CUSTOM_HID_FS_BINTERVAL,	/* bInterval: Polling Interval */
+			/* 41 */
+	};
+
+	uint8_t USBD_FS_BOSDesc[0xC] = {
+			0x5,
+			USB_DESC_TYPE_BOS,
+			0xC,
+			0x0,
+			0x1,  /* 1 device capability*/
+			/* device capability*/
+			0x7,
+			0x10, // USB_DEVICE_CAPABITY_TYPE,
+			0x2,
+			0x2,  /* LPM capability bit set*/
+			0x0,
+			0x0,
+			0x0
+	};
+
+	uint8_t USBD_StringSerial[26]  = {
+	  26,		// size
+	  3, 		// USB_DESC_TYPE_STRING
 	};
 };

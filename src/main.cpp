@@ -2,7 +2,7 @@
 #include "USB.h"
 
 USB usb;
-uint32_t usbEvents[100];
+uint32_t usbEvents[200];
 uint8_t usbEventNo = 0;
 uint8_t eventOcc = 0;
 

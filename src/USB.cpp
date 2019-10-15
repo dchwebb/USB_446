@@ -82,16 +82,36 @@ void USB::USBInterruptHandler() {
 	10						76	STS_DATA_UPDT
 	10						77	STS_SETUP_UPDT
 	80000	OEPINT 			78	USB_OTG_DOEPINT_STUP 0x22000681 0x8a0000
-	40000	IEPINT			79	USB_OTG_DIEPINT_TXFE
+	40000	IEPINT			79	USB_OTG_DIEPINT_TXFE Send first part of CUSTOM_HID_ReportDesc_FS
 	40000	IEPINT			80	USB_OTG_DIEPINT_XFRC
-
+	40000	IEPINT			81	USB_OTG_DIEPINT_TXFE Send second part of CUSTOM_HID_ReportDesc_FS
+	40000	IEPINT			82	USB_OTG_DIEPINT_XFRC
+	10						83	STS_DATA_UPDT
+	10						84	STS_SETUP_UPDT
+	80000	OEPINT 			85	USB_OTG_DOEPINT_XFRC
+	10						86	STS_SETUP_UPDT reads 0x6000680 0xa0000 [request for USB_DESC_TYPE_DEVICE_QUALIFIER] > Stall
+	10						87	STS_SETUP_COMP
+	80000	OEPINT 			88	USB_OTG_DOEPINT_STUP
+	10						89	STS_SETUP_UPDT reads 0x3000680 0x1fe0000
+	10						90	STS_SETUP_COMP
+	80000	OEPINT 			91	USB_OTG_DOEPINT_STUP req:80,6,300,0,1FE String descriptor: USBD_IDX_LANGID_STR
+	40000	IEPINT			92	USB_OTG_DIEPINT_TXFE
+	40000	IEPINT			93	USB_OTG_DIEPINT_XFRC
+	10						94	STS_DATA_UPDT
+	10						95	STS_SETUP_UPDT
+	80000	OEPINT 			96	USB_OTG_DOEPINT_STUP
+	10						97	STS_SETUP_UPDT reads 0x3010680 0x1fe0409
+	10						98	STS_SETUP_COMP
+	80000	OEPINT 			99	USB_OTG_DOEPINT_STUP req:80,6,301,409,1FE String descriptor: USBD_IDX_LANGID_STR
+	..
+	80000	OEPINT 			115	USB_OTG_DOEPINT_STUP req:80,6,3EE,409,1FE String descriptor: Custom user string?
 	 */
 
 	int epnum, ep_intr, epint;
 
 	//int interruptCode = USB_ReadInterrupts();
 
-	if (usbEventNo >= 100) {
+	if (usbEventNo >= 200) {
 		int susp = 1;
 	}
 
@@ -111,9 +131,7 @@ void USB::USBInterruptHandler() {
 		// Read the output endpoint interrupt register to ascertain which endpoint(s) fired an interrupt
 		ep_intr = ((USBx_DEVICE->DAINT & USBx_DEVICE->DAINTMSK) & 0xFFFF0000U) >> 16; // FIXME mask unnecessary with shift right?
 
-		if (usbEventNo > 78) {
-			int susp = 1;
-		}
+
 		// process each endpoint in turn incrementing the epnum and checking the interrupts (ep_intr) if that endpoint fired
 		epnum = 0;
 		while (ep_intr != 0) {
@@ -150,8 +168,7 @@ void USB::USBInterruptHandler() {
 
 					//pdev->ep0_data_len = pdev->request.wLength;
 					ep0_state = USBD_EP0_SETUP;
-					switch (req.mRequest & 0x1F)		// originally USBD_LL_SetupStage
-					{
+					switch (req.mRequest & 0x1F) {		// originally USBD_LL_SetupStage
 					case USB_REQ_RECIPIENT_DEVICE:
 						//initially USB_REQ_GET_DESCRIPTOR >> USB_DESC_TYPE_DEVICE (bmrequest is 0x6)
 						USBD_StdDevReq(req);
@@ -169,7 +186,6 @@ void USB::USBInterruptHandler() {
 								outBuff = CUSTOM_HID_ReportDesc_FS;
 								ep0_state = USBD_EP0_DATA_IN;
 								USB_EP0StartXfer(DIR_IN, 0, outBuffSize);
-								int susp = 1;
 							}
 							else
 							{
@@ -240,9 +256,9 @@ void USB::USBInterruptHandler() {
 
 					if (ep0_state == USBD_EP0_DATA_IN) {
 						if (xfer_rem > 0) {
-							//xfer_count = xfer_rem;
+							outBuffSize = xfer_rem;
 							xfer_rem = 0;
-							USB_EP0StartXfer(DIR_IN, 0, xfer_rem);
+							USB_EP0StartXfer(DIR_IN, 0, outBuffSize);
 						} else {
 
 							USB_EPSetStall(epnum);
@@ -250,10 +266,9 @@ void USB::USBInterruptHandler() {
 							ep0_state = USBD_EP0_STATUS_OUT;
 
 							//HAL_PCD_EP_Receive
+							xfer_rem = 0;
 							xfer_buff[0] = 0;
-							//xfer_len = 0;
-							outCount = 0;		// FIXME - outCount and xfer_count confusing
-							xfer_count = 0;
+							//xfer_count = 0;
 							if (epnum == 0) {
 								USB_EP0StartXfer(DIR_OUT, 0, ep0_maxPacket);
 							} else {
@@ -283,33 +298,18 @@ void USB::USBInterruptHandler() {
 				if ((epint & USB_OTG_DIEPINT_TXFE) == USB_OTG_DIEPINT_TXFE) {
 					//(void)PCD_WriteEmptyTxFifo(hpcd, epnum);
 
-					uint32_t len, len32b;
-					if (outCount > outBuffSize) {			// Error
-						return;
+
+					uint32_t maxPacket = (epnum == 0 ? ep0_maxPacket : ep_maxPacket);
+					if (outBuffSize > maxPacket) {
+						xfer_rem = outBuffSize - maxPacket;
+						outBuffSize = maxPacket;
 					}
 
-					len = outBuffSize - outCount;		// outBuffSize is number of bytes to transfer; outCount is number transferred
-					len = std::min(len, (uint32_t)(epnum == 0 ? ep0_maxPacket : ep_maxPacket));
-					len32b = (len + 3U) / 4U;
+					USB_WritePacket(outBuff, epnum, (uint16_t)outBuffSize);
 
-					while (((USBx_INEP(epnum)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV) >= len32b) && (outCount < outBuffSize) && (outBuffSize != 0U))
-					{
-						// Write to the FIFO
-						len = outBuffSize - outCount;
-						len = std::min(len, (uint32_t)(epnum == 0 ? ep0_maxPacket : ep_maxPacket));
-						len32b = (len + 3U) / 4U;
-
-						USB_WritePacket(outBuff, epnum, (uint16_t)len);
-
-						outBuff  += len;
-						outCount += len;
-					}
-
-					if (outBuffSize <= outCount) {
-						uint32_t fifoemptymsk = (uint32_t)(0x1UL << (epnum & EP_ADDR_MSK));
-						USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
-					}
-
+					outBuff += outBuffSize;		// Move pointer forwards
+					uint32_t fifoemptymsk = (uint32_t)(0x1UL << (epnum & EP_ADDR_MSK));
+					USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
 
 				}
 			}
@@ -738,7 +738,9 @@ void USB::USBD_GetDescriptor(usbRequest req)
 	uint8_t *pbuf;
 	uint32_t deviceserial0, deviceserial1, deviceserial2;
 
-
+	if (usbEventNo >= 115) {
+		int susp = 1;
+	}
 
 	switch (req.Value >> 8)
 	{
@@ -772,6 +774,8 @@ void USB::USBD_GetDescriptor(usbRequest req)
 			//pbuf = pdev->pDesc->GetLangIDStrDescriptor(pdev->dev_speed, &len);
 			break;
 		case USBD_IDX_MFC_STR:
+			outBuffSize = USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, USBD_StrDesc);
+			outBuff = USBD_StrDesc;
 			//pbuf = pdev->pDesc->GetManufacturerStrDescriptor(pdev->dev_speed, &len);
 			break;
 		case USBD_IDX_PRODUCT_STR:
@@ -806,7 +810,14 @@ void USB::USBD_GetDescriptor(usbRequest req)
 			//pbuf = pdev->pClass->GetUsrStrDescriptor(pdev, (req->wValue) , &len);
 			break;
 #else
-			// USBD_CtlError(pdev , req);
+			USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_STALL;
+
+			USBx_OUTEP(0U)->DOEPTSIZ = 0U;
+			USBx_OUTEP(0U)->DOEPTSIZ |= (USB_OTG_DOEPTSIZ_PKTCNT & (1U << 19));
+			USBx_OUTEP(0U)->DOEPTSIZ |= (3U * 8U);
+			USBx_OUTEP(0U)->DOEPTSIZ |=  USB_OTG_DOEPTSIZ_STUPCNT;
+
+			USBx_OUTEP(0)->DOEPCTL |= USB_OTG_DOEPCTL_STALL;
 			return;
 #endif
 		}
@@ -1000,7 +1011,6 @@ void USB::USB_EP0StartXfer(bool is_in, uint8_t epnum, uint32_t xfer_len)
 
 		/* EP enable */
 		USBx_OUTEP(epnum)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);
-		int susp = 1;
 	}
 
 }
@@ -1023,7 +1033,7 @@ void USB::USB_EPSetStall(uint8_t epnum) {
 
 bool USB::USB_ReadInterrupts(uint32_t interrupt){
 
-	if (((USB_OTG_FS->GINTSTS & USB_OTG_FS->GINTMSK) & interrupt) == interrupt && usbEventNo < 100) {
+	if (((USB_OTG_FS->GINTSTS & USB_OTG_FS->GINTMSK) & interrupt) == interrupt && usbEventNo < 200) {
 		usbEvents[usbEventNo] = USB_OTG_FS->GINTSTS & USB_OTG_FS->GINTMSK;
 		usbEventNo++;
 	}

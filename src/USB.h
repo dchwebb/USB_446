@@ -123,7 +123,7 @@ public:
 	void USB_WritePacket(uint8_t *src, uint32_t ch_ep_num, uint16_t len);
 	void USBD_GetDescriptor(usbRequest req);
 	void USBD_StdDevReq (usbRequest req);
-	void USB_EP0StartXfer(bool is_in, uint8_t epnum, uint8_t* xfer_buff, uint32_t xfer_len);
+	void USB_EP0StartXfer(bool is_in, uint8_t epnum, uint32_t xfer_len);
 	void USB_EPSetStall(uint8_t epnum);
 	bool USB_ReadInterrupts(uint32_t interrupt);
 	void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);

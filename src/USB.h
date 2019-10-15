@@ -22,55 +22,57 @@ extern uint8_t usbEventNo, eventOcc;
 #define STS_SETUP_UPDT                         6U
 
 // USB Request Recipient types
-#define  USB_REQ_RECIPIENT_DEVICE              0x00U
-#define  USB_REQ_RECIPIENT_INTERFACE           0x01U
-#define  USB_REQ_RECIPIENT_ENDPOINT            0x02U
-#define  USB_REQ_RECIPIENT_MASK                0x03U
+#define USB_REQ_RECIPIENT_DEVICE              0x00U
+#define USB_REQ_RECIPIENT_INTERFACE           0x01U
+#define USB_REQ_RECIPIENT_ENDPOINT            0x02U
+#define USB_REQ_RECIPIENT_MASK                0x03U
 
 #define EP_ADDR_MSK                            0xFU
 
 // USB Request types
-#define  USB_REQ_TYPE_STANDARD                          0x00U
-#define  USB_REQ_TYPE_CLASS                             0x20U
-#define  USB_REQ_TYPE_VENDOR                            0x40U
-#define  USB_REQ_TYPE_MASK                              0x60U
+#define USB_REQ_TYPE_STANDARD                          0x00U
+#define USB_REQ_TYPE_CLASS                             0x20U
+#define USB_REQ_TYPE_VENDOR                            0x40U
+#define USB_REQ_TYPE_MASK                              0x60U
 
-#define  USB_REQ_GET_STATUS                             0x00U
-#define  USB_REQ_CLEAR_FEATURE                          0x01U
-#define  USB_REQ_SET_FEATURE                            0x03U
-#define  USB_REQ_SET_ADDRESS                            0x05U
-#define  USB_REQ_GET_DESCRIPTOR                         0x06U
-#define  USB_REQ_SET_DESCRIPTOR                         0x07U
-#define  USB_REQ_GET_CONFIGURATION                      0x08U
-#define  USB_REQ_SET_CONFIGURATION                      0x09U
-#define  USB_REQ_GET_INTERFACE                          0x0AU
-#define  USB_REQ_SET_INTERFACE                          0x0BU
-#define  USB_REQ_SYNCH_FRAME                            0x0CU
+#define USB_REQ_GET_STATUS                             0x00U
+#define USB_REQ_CLEAR_FEATURE                          0x01U
+#define USB_REQ_SET_FEATURE                            0x03U
+#define USB_REQ_SET_ADDRESS                            0x05U
+#define USB_REQ_GET_DESCRIPTOR                         0x06U
+#define USB_REQ_SET_DESCRIPTOR                         0x07U
+#define USB_REQ_GET_CONFIGURATION                      0x08U
+#define USB_REQ_SET_CONFIGURATION                      0x09U
+#define USB_REQ_GET_INTERFACE                          0x0AU
+#define USB_REQ_SET_INTERFACE                          0x0BU
+#define USB_REQ_SYNCH_FRAME                            0x0CU
 
-#define  USBD_IDX_LANGID_STR                            0x00U
-#define  USBD_IDX_MFC_STR                               0x01U
-#define  USBD_IDX_PRODUCT_STR                           0x02U
-#define  USBD_IDX_SERIAL_STR                            0x03U
-#define  USBD_IDX_CONFIG_STR                            0x04U
-#define  USBD_IDX_INTERFACE_STR                         0x05U
+#define USBD_IDX_LANGID_STR                            0x00U
+#define USBD_IDX_MFC_STR                               0x01U
+#define USBD_IDX_PRODUCT_STR                           0x02U
+#define USBD_IDX_SERIAL_STR                            0x03U
+#define USBD_IDX_CONFIG_STR                            0x04U
+#define USBD_IDX_INTERFACE_STR                         0x05U
 
-#define  USB_DESC_TYPE_DEVICE                           0x01U
-#define  USB_DESC_TYPE_CONFIGURATION                    0x02U
-#define  USB_DESC_TYPE_STRING                           0x03U
-#define  USB_DESC_TYPE_INTERFACE                        0x04U
-#define  USB_DESC_TYPE_ENDPOINT                         0x05U
-#define  USB_DESC_TYPE_DEVICE_QUALIFIER                 0x06U
-#define  USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION        0x07U
-#define  USB_DESC_TYPE_BOS                              0x0FU
+#define USB_DESC_TYPE_DEVICE                           0x01U
+#define USB_DESC_TYPE_CONFIGURATION                    0x02U
+#define USB_DESC_TYPE_STRING                           0x03U
+#define USB_DESC_TYPE_INTERFACE                        0x04U
+#define USB_DESC_TYPE_ENDPOINT                         0x05U
+#define USB_DESC_TYPE_DEVICE_QUALIFIER                 0x06U
+#define USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION        0x07U
+#define USB_DESC_TYPE_BOS                              0x0FU
 
-#define  USB_LEN_DEV_QUALIFIER_DESC                     0x0AU
-#define  USB_LEN_DEV_DESC                               0x12U
-#define  USB_LEN_CFG_DESC                               0x09U
-#define  USB_LEN_IF_DESC                                0x09U
-#define  USB_LEN_EP_DESC                                0x07U
-#define  USB_LEN_OTG_DESC                               0x03U
-#define  USB_LEN_LANGID_STR_DESC                        0x04U
-#define  USB_LEN_OTHER_SPEED_DESC_SIZ                   0x09U
+#define USB_LEN_DEV_QUALIFIER_DESC                     0x0AU
+#define USB_LEN_DEV_DESC                               0x12U
+#define USB_LEN_CFG_DESC                               0x09U
+#define USB_LEN_IF_DESC                                0x09U
+#define USB_LEN_EP_DESC                                0x07U
+#define USB_LEN_OTG_DESC                               0x03U
+#define USB_LEN_LANGID_STR_DESC                        0x04U
+#define USB_LEN_OTHER_SPEED_DESC_SIZ                   0x09U
+#define USBD_MAX_STR_DESC_SIZ     						512U
+#define USBD_CUSTOM_HID_REPORT_DESC_SIZE				0x4A
 
 // EP0 State
 #define USBD_EP0_IDLE                                   0x00U
@@ -81,6 +83,11 @@ extern uint8_t usbEventNo, eventOcc;
 #define USBD_EP0_STATUS_OUT                             0x05U
 #define USBD_EP0_STALL                                  0x06U
 
+#define USBD_EP_TYPE_CTRL                               0x00U
+#define USBD_EP_TYPE_ISOC                               0x01U
+#define USBD_EP_TYPE_BULK                               0x02U
+#define USBD_EP_TYPE_INTR                               0x03U
+
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "STMicroelectronics"
@@ -89,10 +96,13 @@ extern uint8_t usbEventNo, eventOcc;
 #define USBD_CONFIGURATION_STRING_FS     "Custom HID Config"
 #define USBD_INTERFACE_STRING_FS     "Custom HID Interface"
 
-#define  SWAPBYTE(addr)        (((uint16_t)(*((uint8_t *)(addr)))) + \
+#define SWAPBYTE(addr)        (((uint16_t)(*((uint8_t *)(addr)))) + \
 		(((uint16_t)(*(((uint8_t *)(addr)) + 1U))) << 8U))
 #define LOBYTE(x)  ((uint8_t)(x & 0x00FFU))
 #define HIBYTE(x)  ((uint8_t)((x & 0xFF00U) >> 8U))
+
+#define DIR_IN true
+#define DIR_OUT false
 
 struct usbRequest {
 	uint8_t mRequest;
@@ -117,16 +127,20 @@ public:
 	void USB_EPSetStall(uint8_t epnum);
 	bool USB_ReadInterrupts(uint32_t interrupt);
 	void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);
+	uint32_t USBD_GetString(uint8_t *desc, uint8_t *unicode);
 
 	usbRequest req;
-	uint8_t maxPacket = 0x40;
+	uint8_t ep0_maxPacket = 0x40;
+	uint8_t ep_maxPacket = 0x2;
 	uint32_t xfer_buff[32];		// in HAL there is a transfer buffer for each in and out endpoint
 	uint32_t xfer_count;
+	uint32_t xfer_rem;			// If transfer is larger than maximum packet size store remaining byte count
 	//	FIXME - should there be one of these output buffers for each endpoint?
 	uint8_t* outBuff;
 	uint32_t outBuffSize;
 	uint32_t outCount;
 	uint32_t ep0_state;
+	uint8_t dev_state;
 
 	// USB standard device descriptor - in usbd_desc.c
 	uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] = {
@@ -152,11 +166,11 @@ public:
 
 	// USB CUSTOM_HID device FS Configuration Descriptor  - in usbd_customhid.c
 	uint8_t USBD_CUSTOM_HID_CfgFSDesc[0x29] = {
-			0x09, /* bLength: Configuration Descriptor size */
-			USB_DESC_TYPE_CONFIGURATION, /* bDescriptorType: Configuration */
-			0x29, 					// USB_CUSTOM_HID_CONFIG_DESC_SIZ, wTotalLength: Bytes returned */
+			0x09, 					// bLength: Configuration Descriptor size
+			USB_DESC_TYPE_CONFIGURATION, // bDescriptorType: Configuration
+			0x29, 					// USB_CUSTOM_HID_CONFIG_DESC_SIZ, wTotalLength: Bytes returned
 			0x00,
-			0x01,         /*bNumInterfaces: 1 interface*/
+			0x01,         			// bNumInterfaces: 1 interface
 			0x01,         /*bConfigurationValue: Configuration value*/
 			0x00,         /*iConfiguration: Index of string descriptor describing
 	  the configuration*/
@@ -223,8 +237,68 @@ public:
 			0x0
 	};
 
-	uint8_t USBD_StringSerial[26]  = {
-	  26,		// size
-	  3, 		// USB_DESC_TYPE_STRING
+	uint8_t USBD_StringSerial[0x1A] = {
+			0x1A,		// size
+			3, 		// USB_DESC_TYPE_STRING
+	};
+
+	// USB lang indentifier descriptor
+	uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] = {
+			USB_LEN_LANGID_STR_DESC,
+			USB_DESC_TYPE_STRING,
+			LOBYTE(USBD_LANGID_STRING),
+			HIBYTE(USBD_LANGID_STRING)
+	};
+
+	uint8_t USBD_StrDesc[USBD_MAX_STR_DESC_SIZ];
+
+	uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DESC_SIZE] = {
+			0x05,   0x01,
+			0x09,   0x02,
+			0xA1,   0x01,
+			0x09,   0x01,
+
+			0xA1,   0x00,
+			0x05,   0x09,
+			0x19,   0x01,
+			0x29,   0x03,
+
+			0x15,   0x00,
+			0x25,   0x01,
+			0x95,   0x03,
+			0x75,   0x01,
+
+			0x81,   0x02,
+			0x95,   0x01,
+			0x75,   0x05,
+			0x81,   0x01,
+
+			0x05,   0x01,
+			0x09,   0x30,
+			0x09,   0x31,
+			0x09,   0x38,
+
+			0x15,   0x81,
+			0x25,   0x7F,
+			0x75,   0x08,
+			0x95,   0x03,
+
+			0x81,   0x06,
+			0xC0,   0x09,
+			0x3c,   0x05,
+			0xff,   0x09,
+
+			0x01,   0x15,
+			0x00,   0x25,
+			0x01,   0x75,
+			0x01,   0x95,
+
+			0x02,   0xb1,
+			0x22,   0x75,
+			0x06,   0x95,
+			0x01,   0xb1,
+
+			0x01,
+			0xC0
 	};
 };

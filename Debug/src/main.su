@@ -1,4 +1,4 @@
-USB.h:107:7:USB::USB()	32	static
+USB.h:117:7:USB::USB()	32	static
 interrupts.h:1:6:void OTG_FS_IRQHandler()	8	static
 interrupts.h:5:6:void NMI_Handler()	4	static
 interrupts.h:7:6:void HardFault_Handler()	4	static

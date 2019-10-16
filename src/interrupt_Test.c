@@ -174,7 +174,8 @@ void OTG_FS_IRQHandler(void)
 	{
 	  if ((USBx_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
 	  {
-		  //USBD_LL_Suspend((USBD_HandleTypeDef*)hpcd->pData);		// stores status of suspend pdev->dev_state  = USBD_STATE_SUSPENDED
+		  //USBD_LL_Suspend((USBD_HandleTypeDef*)hpcd->pData);		// stores status of suspend pdev->
+		  dev_state  = USBD_STATE_SUSPENDED;
 		  USBx_PCGCCTL |= USB_OTG_PCGCCTL_STOPCLK;
 	  }
 	  USB_OTG_FS->GINTSTS &= USB_OTG_GINTSTS_USBSUSP;

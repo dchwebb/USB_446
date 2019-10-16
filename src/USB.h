@@ -88,6 +88,13 @@ extern uint8_t usbEventNo, eventOcc;
 #define USBD_EP_TYPE_BULK                               0x02U
 #define USBD_EP_TYPE_INTR                               0x03U
 
+//  Device Status
+#define USBD_STATE_DEFAULT                              0x01U
+#define USBD_STATE_ADDRESSED                            0x02U
+#define USBD_STATE_CONFIGURED                           0x03U
+#define USBD_STATE_SUSPENDED                            0x04U
+
+
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "ButtFluff"
@@ -112,7 +119,11 @@ struct usbRequest {
 	uint16_t Length;
 };
 
-
+typedef enum {
+	CUSTOM_HID_IDLE = 0U,
+	CUSTOM_HID_BUSY,
+}
+CUSTOM_HID_StateTypeDef;
 
 class USB {
 public:
@@ -128,6 +139,7 @@ public:
 	bool USB_ReadInterrupts(uint32_t interrupt);
 	void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);
 	uint32_t USBD_GetString(uint8_t *desc, uint8_t *unicode);
+	void SendReport(uint8_t *report, uint16_t len);
 
 	usbRequest req;
 	uint8_t ep0_maxPacket = 0x40;
@@ -141,6 +153,7 @@ public:
 	uint32_t outCount;
 	uint32_t ep0_state;
 	uint8_t dev_state;
+	CUSTOM_HID_StateTypeDef hid_state;
 
 	// USB standard device descriptor - in usbd_desc.c
 	uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] = {

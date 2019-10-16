@@ -111,7 +111,7 @@ void USB::USBInterruptHandler() {
 
 	//int interruptCode = USB_ReadInterrupts();
 
-	if (usbEventNo >= 200) {
+	if (usbEventNo >= 116) {
 		int susp = 1;
 	}
 
@@ -128,6 +128,9 @@ void USB::USBInterruptHandler() {
 	// OUT endpoint interrupt
 	if (USB_ReadInterrupts(USB_OTG_GINTSTS_OEPINT)) {
 
+		if (usbEventNo > 115) {
+			int susp = 1;
+		}
 		// Read the output endpoint interrupt register to ascertain which endpoint(s) fired an interrupt
 		ep_intr = ((USBx_DEVICE->DAINT & USBx_DEVICE->DAINTMSK) & 0xFFFF0000U) >> 16; // FIXME mask unnecessary with shift right?
 
@@ -251,34 +254,33 @@ void USB::USBInterruptHandler() {
 
 					USBx_INEP(epnum)->DIEPINT = USB_OTG_DIEPINT_XFRC;
 
+					if (epnum == 0) {
 
-					//HAL_PCD_DataInStageCallback(hpcd, (uint8_t)epnum);
+						//HAL_PCD_DataInStageCallback(hpcd, (uint8_t)epnum);
 
-					if (ep0_state == USBD_EP0_DATA_IN) {
-						if (xfer_rem > 0) {
-							outBuffSize = xfer_rem;
-							xfer_rem = 0;
-							USB_EP0StartXfer(DIR_IN, 0, outBuffSize);
-						} else {
-
-							USB_EPSetStall(epnum);
-
-							ep0_state = USBD_EP0_STATUS_OUT;
-
-							//HAL_PCD_EP_Receive
-							xfer_rem = 0;
-							xfer_buff[0] = 0;
-							//xfer_count = 0;
-							if (epnum == 0) {
-								USB_EP0StartXfer(DIR_OUT, 0, ep0_maxPacket);
+						if (ep0_state == USBD_EP0_DATA_IN) {
+							if (xfer_rem > 0) {
+								outBuffSize = xfer_rem;
+								xfer_rem = 0;
+								USB_EP0StartXfer(DIR_IN, 0, outBuffSize);
 							} else {
-								//USB_EPStartXfer(false, epnum, nullptr, outBuffSize);
+
+								USB_EPSetStall(epnum);
+
+								ep0_state = USBD_EP0_STATUS_OUT;
+
+								//HAL_PCD_EP_Receive
+								xfer_rem = 0;
+								xfer_buff[0] = 0;
+								USB_EP0StartXfer(DIR_OUT, 0, ep0_maxPacket);
 							}
 						}
-					}
-					else if ((ep0_state == USBD_EP0_STATUS_IN) || (ep0_state == USBD_EP0_IDLE))		// second time around
-					{
-						USB_EPSetStall(epnum);
+						else if ((ep0_state == USBD_EP0_STATUS_IN) || (ep0_state == USBD_EP0_IDLE)) {		// second time around
+							USB_EPSetStall(epnum);
+						}
+					} else {
+						int susp = 1;
+						hid_state = CUSTOM_HID_IDLE;
 					}
 				}
 
@@ -336,7 +338,8 @@ void USB::USBInterruptHandler() {
 
 		if ((USBx_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
 		{
-			//USBD_LL_Suspend((USBD_HandleTypeDef*)hpcd->pData);		// stores status of suspend pdev->dev_state  = USBD_STATE_SUSPENDED
+			//USBD_LL_Suspend((USBD_HandleTypeDef*)hpcd->pData);		// stores status of suspend pdev->
+			dev_state  = USBD_STATE_SUSPENDED;
 			USBx_PCGCCTL |= USB_OTG_PCGCCTL_STOPCLK;
 		}
 		USB_OTG_FS->GINTSTS &= USB_OTG_GINTSTS_USBSUSP;
@@ -916,7 +919,7 @@ void USB::USBD_StdDevReq(usbRequest req)
 			//USBD_SetConfig (pdev, req);
 
 			//if (dev_state == USBD_STATE_ADDRESSED) {
-			//dev_state = USBD_STATE_CONFIGURED;
+			dev_state = USBD_STATE_CONFIGURED;
 			//USBD_CUSTOM_HID_Init
 			USB_ActivateEndpoint(req.Value, true, USBD_EP_TYPE_INTR);		// Activate in endpoint
 			USB_ActivateEndpoint(req.Value, false, USBD_EP_TYPE_INTR);		// Activate out endpoint
@@ -1039,5 +1042,16 @@ bool USB::USB_ReadInterrupts(uint32_t interrupt){
 	}
 
 	return ((USB_OTG_FS->GINTSTS & USB_OTG_FS->GINTMSK) & interrupt) == interrupt;
+}
+
+void USB::SendReport(uint8_t *report, uint16_t len) {
+	if (dev_state == USBD_STATE_CONFIGURED) {
+		if (hid_state == CUSTOM_HID_IDLE) {
+			hid_state = CUSTOM_HID_BUSY;
+			outBuff = report;
+			outBuffSize = len;
+			USB_EP0StartXfer(DIR_IN, 1, len);
+		}
+	}
 }
 

@@ -1,16 +1,17 @@
 core_cm4.h:1494:22:void NVIC_EnableIRQ(IRQn_Type)	16	static
 core_cm4.h:1577:22:void NVIC_SetPriority(IRQn_Type, uint32_t)	16	static
 stl_algobase.h:195:5:constexpr const _Tp& std::min(const _Tp&, const _Tp&) [with _Tp = short unsigned int]	16	static
-USB.cpp:3:6:void USB::USBInterruptHandler()	72	static
-USB.cpp:514:6:void USB::InitUSB()	32	static
-USB.cpp:678:6:void USB::USB_ActivateEndpoint(uint32_t, bool, uint8_t)	32	static
-USB.cpp:705:6:void USB::USB_ReadPacket(uint32_t*, uint16_t)	40	static
-USB.cpp:719:6:void USB::USB_WritePacket(uint8_t*, uint32_t, uint16_t)	40	static
+USB.cpp:3:6:void USB::USBInterruptHandler()	80	static
+USB.cpp:517:6:void USB::InitUSB()	32	static
+USB.cpp:681:6:void USB::USB_ActivateEndpoint(uint32_t, bool, uint8_t)	32	static
+USB.cpp:708:6:void USB::USB_ReadPacket(uint32_t*, uint16_t)	40	static
+USB.cpp:722:6:void USB::USB_WritePacket(uint8_t*, uint32_t, uint16_t)	40	static
 stl_algobase.h:195:5:constexpr const _Tp& std::min(const _Tp&, const _Tp&) [with _Tp = long unsigned int]	16	static
-USB.cpp:735:6:void USB::USBD_GetDescriptor(usbRequest)	48	static
-USB.cpp:856:10:uint32_t USB::USBD_GetString(uint8_t*, uint8_t*)	32	static
-USB.cpp:872:6:void USB::IntToUnicode(uint32_t, uint8_t*, uint8_t)	32	static
-USB.cpp:887:6:void USB::USBD_StdDevReq(usbRequest)	32	static
-USB.cpp:963:6:void USB::USB_EP0StartXfer(bool, uint8_t, uint32_t)	32	static
-USB.cpp:1019:6:void USB::USB_EPSetStall(uint8_t)	16	static
-USB.cpp:1034:6:bool USB::USB_ReadInterrupts(uint32_t)	16	static
+USB.cpp:738:6:void USB::USBD_GetDescriptor(usbRequest)	48	static
+USB.cpp:859:10:uint32_t USB::USBD_GetString(uint8_t*, uint8_t*)	32	static
+USB.cpp:875:6:void USB::IntToUnicode(uint32_t, uint8_t*, uint8_t)	32	static
+USB.cpp:890:6:void USB::USBD_StdDevReq(usbRequest)	32	static
+USB.cpp:966:6:void USB::USB_EP0StartXfer(bool, uint8_t, uint32_t)	32	static
+USB.cpp:1022:6:void USB::USB_EPSetStall(uint8_t)	16	static
+USB.cpp:1037:6:bool USB::USB_ReadInterrupts(uint32_t)	16	static
+USB.cpp:1047:6:void USB::SendReport(uint8_t*, uint16_t)	24	static

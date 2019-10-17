@@ -521,10 +521,17 @@ void USB::InitUSB()
 	// USB_OTG_FS GPIO Configuration: PA8: USB_OTG_FS_SOF; PA9: USB_OTG_FS_VBUS; PA10: USB_OTG_FS_ID; PA11: USB_OTG_FS_DM; PA12: USB_OTG_FS_DP
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
-	// PA8, PA10, PA11, PA12 (NB PA9 - VBUS uses default values)
+	// PA8 (SOF), PA10 (ID), PA11 (DM), PA12 (DP) (NB PA9 - VBUS uses default values)
+	GPIOA->MODER |= GPIO_MODER_MODER10_1 | GPIO_MODER_MODER11_1 | GPIO_MODER_MODER12_1;					// 10: Alternate function mode
+	GPIOA->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR10 | GPIO_OSPEEDER_OSPEEDR11 | GPIO_OSPEEDER_OSPEEDR12;		// 11: High speed
+	GPIOA->AFR[1] |= (10 << 12) | (10 << 16);															// Alternate Function 10 is OTG_FS
+
+/*
 	GPIOA->MODER |= GPIO_MODER_MODER8_1 | GPIO_MODER_MODER10_1 | GPIO_MODER_MODER11_1 | GPIO_MODER_MODER12_1;					// 10: Alternate function mode
 	GPIOA->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR8 | GPIO_OSPEEDER_OSPEEDR10 | GPIO_OSPEEDER_OSPEEDR11 | GPIO_OSPEEDER_OSPEEDR12;		// 11: High speed
 	GPIOA->AFR[1] |= (10 << 0) | (10 << 8) | (10 << 12) | (10 << 16);															// Alternate Function 10 is OTG_FS
+*/
+
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN;				// USB OTG FS clock enable
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;				// Enable system configuration clock: used to manage external interrupt line connection to GPIOs
@@ -532,6 +539,7 @@ void USB::InitUSB()
 	NVIC_SetPriority(OTG_FS_IRQn, 0);
 	NVIC_EnableIRQ(OTG_FS_IRQn);
 
+/*
 	// *********************  HAL_PCD_Init() in /Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c
 	USB_OTG_FS->GAHBCFG &= ~USB_OTG_GAHBCFG_GINT;		// Disable global interrupts
 
@@ -540,9 +548,11 @@ void USB::InitUSB()
 
 	// *********************  USB_CoreReset() in Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 	// Reset the USB Core (needed after USB clock settings change)
+
 	while ((USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);
 	USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;		// Core Soft Reset
 	while ((USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST);
+*/
 
 
 	// *********************  USB_CoreInit() in Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
@@ -564,9 +574,11 @@ void USB::InitUSB()
 
 
 	USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBDEN; 			// Enable HW VBUS sensing
-	*((uint32_t *)USB_OTG_FS + USB_OTG_PCGCCTL_BASE) &= ~USB_OTG_PCGCCTL_STOPCLK;		// peripheral register not in header - should be something like OTG_FS_PWRCLK->FS_PCGCCTL
 
+	/*
+	USBx_PCGCCTL &= ~USB_OTG_PCGCCTL_STOPCLK;
 	USBx_DEVICE->DCFG &= ~USB_OTG_DCFG_PFIVL;			// default 00: 80% of the frame interval: Indicates time within frame at which application must be notified using end of periodic frame interrupt. This can be used to determine if all the isochronous traffic for that frame is complete.
+	*/
 
 	// *********************  USB_SetDevSpeed() in  Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 	USBx_DEVICE->DCFG |= USB_OTG_DCFG_DSPD;				// 11: Full speed using internal FS PHY
@@ -581,6 +593,7 @@ void USB::InitUSB()
 
 	// ********************* continues USB_DevInit() in Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 	/* Clear all pending Device Interrupts */
+	/*
 	USBx_DEVICE->DIEPMSK = 0U;
 	USBx_DEVICE->DOEPMSK = 0U;
 	USBx_DEVICE->DAINTMSK = 0U;
@@ -597,14 +610,21 @@ void USB::InitUSB()
 		USBx_OUTEP(i)->DOEPTSIZ = 0U;
 		USBx_OUTEP(i)->DOEPINT  = 0xFB7FU;
 	}
+*/
+	//USBx_DEVICE->DIEPMSK &= ~(USB_OTG_DIEPMSK_TXFURM);	// FIFO underrun mask
 
-	USBx_DEVICE->DIEPMSK &= ~(USB_OTG_DIEPMSK_TXFURM);	// NB bit does not appear to be shown in the SFR
+	USB_OTG_FS->GINTSTS = 0xBFFFFFFFU;					// Clear pending interrupts (except SRQINT Session request/new session detected)
 
-	USB_OTG_FS->GINTMSK = 0U;							// Disable all interrupts.
-	USB_OTG_FS->GINTSTS = 0xBFFFFFFFU;					// Clear any pending interrupts
+	// Enable interrupts
+	USB_OTG_FS->GINTMSK = 0U;							// Disable all interrupts
+	USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM | USB_OTG_GINTMSK_USBSUSPM |			// Receive FIFO non-empty mask; USB suspend
+			USB_OTG_GINTMSK_USBRST | USB_OTG_GINTMSK_ENUMDNEM |							// USB reset; Enumeration done
+			USB_OTG_GINTMSK_IEPINT | USB_OTG_GINTMSK_OEPINT | USB_OTG_GINTMSK_WUIM |	// IN endpoint; OUT endpoint; Resume/remote wakeup detected
+			USB_OTG_GINTMSK_SRQIM | USB_OTG_GINTMSK_OTGINT;								// Session request/new session detected; OTG interrupt
+
+	/*
 	USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;		// Enable the Global interrupt: Receive FIFO non-empty mask
 
-	// Enable interrupts matching to the Device mode ONLY
 	USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_USBSUSPM | USB_OTG_GINTMSK_USBRST |	// USB suspend; USB reset
 			USB_OTG_GINTMSK_ENUMDNEM | USB_OTG_GINTMSK_IEPINT |					// Enumeration done; IN endpoints interrupt
 			USB_OTG_GINTMSK_OEPINT   | USB_OTG_GINTMSK_IISOIXFRM |				// OUT endpoints interrupt; Incomplete isochronous IN transfer
@@ -613,16 +633,18 @@ void USB::InitUSB()
 	//USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_SOFM;								// Start of frame
 	USB_OTG_FS->GINTMSK |= (USB_OTG_GINTMSK_SRQIM | USB_OTG_GINTMSK_OTGINT);	// Session request/new session detected; OTG interrupt
 
+*/
+
 	// ********************* USB_DevDisconnect() in Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 	// As long as this bit is set, the host does not see that the device is connected, and the device does not receive signals on the USB.
-	USBx_DEVICE->DCTL |= USB_OTG_DCTL_SDIS;				// Soft disconnect (not needed: already set by RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN)
+	//USBx_DEVICE->DCTL |= USB_OTG_DCTL_SDIS;				// Soft disconnect (not needed: already set by RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN)
 	//HAL_Delay(3U);
 
 	// ********************* HAL_PCDEx_SetRxFiFo() in /Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c
 	USB_OTG_FS->GRXFSIZ = 128;		 					// RxFIFO depth
 
 	// ********************* HAL_PCDEx_SetTxFiFo() in /Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c
-	// OTG_FS non-periodic transmit FIFO size register (Device mode) (FS_GNPTXFSIZ_Device in SFR)
+	// Non-periodic transmit FIFO size register (FS_GNPTXFSIZ_Device in SFR)
 	USB_OTG_FS->DIEPTXF0_HNPTXFSIZ = ((uint32_t)64 << USB_OTG_TX0FD_Pos) |		// Endpoint 0 TxFIFO depth
 			((uint32_t)128 << USB_OTG_TX0FSA_Pos);								// Endpoint 0 transmit RAM start  address
 
@@ -630,45 +652,6 @@ void USB::InitUSB()
     USB_OTG_FS->DIEPTXF[0] = ((uint32_t)128 << USB_OTG_DIEPTXF_INEPTXFD_Pos) |	// IN endpoint TxFIFO depth
     		((uint32_t)192 << USB_OTG_DIEPTXF_INEPTXSA_Pos);  					// IN endpoint FIFO2 transmit RAM start address
 
-    // *********************  USBD_RegisterClass() in /Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
-    // call back class struct declared in /Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_def.h
-    // links to call back functions declared in Middlewares/ST/STM32_USB_Device_Library/Class/CustomHID/Src/usbd_customhid.c
-	/*
-    typedef struct _Device_cb
-	{
-		uint8_t  (*Init)             (struct _USBD_HandleTypeDef *pdev , uint8_t cfgidx);
-		uint8_t  (*DeInit)           (struct _USBD_HandleTypeDef *pdev , uint8_t cfgidx);
-
-		// Control Endpoints
-		uint8_t  (*Setup)            (struct _USBD_HandleTypeDef *pdev , USBD_SetupReqTypedef  *req);
-		uint8_t  (*EP0_TxSent)       (struct _USBD_HandleTypeDef *pdev );
-		uint8_t  (*EP0_RxReady)      (struct _USBD_HandleTypeDef *pdev );
-
-		// Class Specific Endpoints
-		uint8_t  (*DataIn)           (struct _USBD_HandleTypeDef *pdev , uint8_t epnum);
-		uint8_t  (*DataOut)          (struct _USBD_HandleTypeDef *pdev , uint8_t epnum);
-		uint8_t  (*SOF)              (struct _USBD_HandleTypeDef *pdev);
-		uint8_t  (*IsoINIncomplete)  (struct _USBD_HandleTypeDef *pdev , uint8_t epnum);
-		uint8_t  (*IsoOUTIncomplete) (struct _USBD_HandleTypeDef *pdev , uint8_t epnum);
-
-		uint8_t  *(*GetHSConfigDescriptor)(uint16_t *length);
-		uint8_t  *(*GetFSConfigDescriptor)(uint16_t *length);
-		uint8_t  *(*GetOtherSpeedConfigDescriptor)(uint16_t *length);
-		uint8_t  *(*GetDeviceQualifierDescriptor)(uint16_t *length);
-    } USBD_ClassTypeDef;
-    */
-
-    // *********************  USBD_CUSTOM_HID_RegisterInterface() in Middlewares/ST/STM32_USB_Device_Library/Class/CustomHID/Src/usbd_customhid.c
-    // Links report definition to USB class in *pReport which is the array defining the HID report structure; definition: USBD_CustomHID_fops_FS
-	/*
-	typedef struct _USBD_CUSTOM_HID_Itf
-	{
-		uint8_t                  *pReport;
-		int8_t (* Init)          (void);
-		int8_t (* DeInit)        (void);
-		int8_t (* OutEvent)      (uint8_t event_idx, uint8_t state);
-	} USBD_CUSTOM_HID_ItfTypeDef;
-	*/
 
     // *********************  USB_DevConnect() in Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
     USBx_DEVICE->DCTL &= ~USB_OTG_DCTL_SDIS;

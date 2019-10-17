@@ -97,7 +97,7 @@ extern uint8_t usbEventNo, eventOcc;
 
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "ButtFluff"
+#define USBD_MANUFACTURER_STRING     "ButtFluffkins"
 #define USBD_PID_FS     22352
 #define USBD_PRODUCT_STRING_FS     "STM32 Custom Human interface"
 #define USBD_CONFIGURATION_STRING_FS     "Custom HID Config"
@@ -143,7 +143,7 @@ public:
 
 	usbRequest req;
 	uint8_t ep0_maxPacket = 0x40;
-	uint8_t ep_maxPacket = 0x2;
+	uint8_t ep_maxPacket = 0x4;
 	uint32_t xfer_buff[32];		// in HAL there is a transfer buffer for each in and out endpoint
 	uint32_t xfer_count;
 	uint32_t xfer_rem;			// If transfer is larger than maximum packet size store remaining byte count
@@ -219,7 +219,7 @@ public:
 
 			0x81, 		// CUSTOM_HID_EPIN_ADDR,     /*bEndpointAddress: Endpoint Address (IN)*/
 			0x03,          /*bmAttributes: Interrupt endpoint*/
-			0x02, 		// CUSTOM_HID_EPIN_SIZE, wMaxPacketSize: 2 Byte max
+			0x04, 		// CUSTOM_HID_EPIN_SIZE, wMaxPacketSize: 2 Byte max
 			0x00,
 			0x05, 		// CUSTOM_HID_FS_BINTERVAL,          bInterval: Polling Interval
 			/* 34 */
@@ -228,7 +228,7 @@ public:
 			USB_DESC_TYPE_ENDPOINT,	/* bDescriptorType: */
 			0x01, 		// CUSTOM_HID_EPOUT_ADDR,  bEndpointAddress: Endpoint Address (OUT)
 			0x03,	/* bmAttributes: Interrupt endpoint */
-			0x02, 		// CUSTOM_HID_EPOUT_SIZE,	/* wMaxPacketSize: 2 Bytes max  */
+			0x04, 		// CUSTOM_HID_EPOUT_SIZE,	/* wMaxPacketSize: 2 Bytes max  */
 			0x00,
 			0x05			//CUSTOM_HID_FS_BINTERVAL,	/* bInterval: Polling Interval */
 			/* 41 */
